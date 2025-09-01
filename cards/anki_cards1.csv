@@ -1,0 +1,84 @@
+What is the mathematical formulation of the negative log-likelihood (NLL) loss function used in supervised fine-tuning for LLMs?,"\[\text{NLL}(\vec{text}, M) = -\sum_{t=1}^{T} \log(\pi_M(a_t|\vec{s}_t))\]
+
+Where:
+- \(\vec{text}\) is the input sequence
+- \(M\) is the model
+- \(T\) is the sequence length
+- \(a_t\) is the token at position \(t\)
+- \(\vec{s}_t\) represents tokens 1 to \(t-1\)
+- \(\pi_M(a_t|\vec{s}_t)\) is the probability of token \(a_t\) given previous tokens under model \(M\)",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,This is the fundamental loss function used in both pre-training and supervised fine-tuning. The negative log converts the product of probabilities into a sum for computational stability.
+What is the key difference between the advantage functions used in PPO versus GRPO?,"**PPO Advantage Function:**
+\[A_M(a_t, \vec{s}_t) = R(\vec{text}) - V_M(\vec{s}_t)\]
+Requires a separate value function \(V_M\) (critic model)
+
+**GRPO Advantage Function:**
+\[A(\vec{text}_{qg}) = R(\vec{text}_{qg}) - \frac{1}{G}\sum_{i=1}^{G} R(\vec{text}_{qi})\]
+Uses the average reward within the group as baseline, eliminating need for value function",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"GRPO's key innovation is replacing the learned value function with a simple group average, making it computationally simpler while maintaining effectiveness."
+What is the mathematical formulation of the PPO loss function with clipping?,"\[\text{PPO Loss} = -\frac{1}{S}\sum_{i=1}^{S}\sum_{t=1}^{T} \min\left[\frac{\pi_1(a_{it}|\vec{s}_{it})}{\pi_0(a_{it}|\vec{s}_{it})} A_1(a_{it}, \vec{s}_{it}), \text{CLIP}\left(\frac{\pi_1(a_{it}|\vec{s}_{it})}{\pi_0(a_{it}|\vec{s}_{it})}, 1-\epsilon, 1+\epsilon\right) A_1(a_{it}, \vec{s}_{it})\right]\]
+
+Where CLIP(v, x, y) = min(max(v, x), y) and \(\epsilon\) is the clipping parameter (typically 0.2)",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"The clipping mechanism prevents the probability ratio from deviating too far from 1, which helps prevent model collapse and ensures stable training."
+What is the DPO (Direct Preference Optimization) loss function and how does it eliminate the need for a reward model?,"\[\text{DPO Loss} = -\log\left[\sigma\left\{\beta\log\left(\frac{\pi_1(\vec{text}_w)}{\pi_0(\vec{text}_w)}\right) - \beta\log\left(\frac{\pi_1(\vec{text}_l)}{\pi_0(\vec{text}_l)}\right)\right\}\right]\]
+
+Where:
+- \(\sigma\) is the sigmoid function
+- \(\vec{text}_w\) is the winning (preferred) text
+- \(\vec{text}_l\) is the losing (less preferred) text
+- \(\beta\) is a scaling factor
+
+DPO eliminates the reward model by directly optimizing the policy using preference data, treating the model's negative log-likelihood as an implicit reward.",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"DPO's key insight is that you can optimize preferences directly without explicitly training a separate reward model, making the process more efficient."
+What is the REINFORCE loss function and how does it incorporate the baseline function?,"\[\text{REINFORCE Loss} = -\frac{1}{S}\sum_{i=1}^{S}\sum_{t=1}^{T} (R(\vec{text}_i) - V_M(\vec{s}_{it})) \cdot \log(\pi_M(a_{it}|\vec{s}_{it}))\]
+
+Where:
+- \(R(\vec{text}_i)\) is the reward for the complete text
+- \(V_M(\vec{s}_{it})\) is the baseline (value function)
+- The baseline reduces gradient variance
+- Each token's log probability is weighted by the advantage \((R - V_M)\)",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"The baseline function is crucial for reducing variance in gradient estimates. Without it, REINFORCE can have very high variance and unstable training."
+What is the KL divergence penalty term used in TRPO and why is it important?,"\[D_{KL}(\pi_0(\cdot|\vec{s}_t) \| \pi_1(\cdot|\vec{s}_t)) = \sum_{a_t} \pi_0(a_t|\vec{s}_t) \log\left(\frac{\pi_0(a_t|\vec{s}_t)}{\pi_1(a_t|\vec{s}_t)}\right)\]
+
+**Purpose:** Prevents the updated model \(\pi_1\) from deviating too far from the original model \(\pi_0\), which helps prevent:
+- Model collapse
+- Overfitting to the reward signal
+- Unstable training dynamics
+
+TRPO uses this as a constraint: \(D_{KL} \leq \delta\)",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"The KL divergence acts as a 'trust region' that keeps the policy updates conservative, ensuring the model doesn't make drastic changes that could harm performance."
+How is the reward model trained in RLHF and what loss function does it use?,"The reward model is trained using human preference data with binary cross-entropy loss:
+
+\[\text{Reward Loss} = -\log(\sigma(R(\vec{text}_w) - R(\vec{text}_l)))\]
+
+Where:
+- \(\sigma\) is the sigmoid function
+- \(R(\vec{text}_w)\) is the reward for the winning text
+- \(R(\vec{text}_l)\) is the reward for the losing text
+- The model learns to assign higher rewards to preferred responses
+
+**Training process:** Present pairs of responses to humans, collect preferences, train model to predict which response humans prefer.",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"The reward model essentially learns to mimic human preferences by predicting which of two responses a human would prefer, using the sigmoid to convert reward differences to probabilities."
+What is the modified reward function used in practice with PPO that incorporates KL penalty?,"\[R'(a_t, \vec{s}_t, M_0, M_1) = R(a_t, \vec{s}_t) - \beta \log\left(\frac{\pi_1(a_t|\vec{s}_t)}{\pi_0(a_t|\vec{s}_t)}\right)\]
+
+Where:
+- \(R'\) is the modified reward function
+- \(R\) is the original reward
+- \(\beta\) is the KL penalty coefficient
+- The log ratio term penalizes deviations from the reference model \(M_0\)
+
+**Advantage:** This formulation allows using standard PPO packages without modification while achieving the same effect as adding KL penalty to the loss.",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"This is a practical implementation trick that embeds the KL constraint directly into the reward signal, making it compatible with existing RL frameworks."
+What are the key problems with rejection sampling that reinforcement learning methods aim to solve?,"**Four main issues with rejection sampling:**
+
+1. **Discrete Learning:** Multiple parameter updates on same data, leading to overfitting
+2. **No Learning from Mistakes:** Model only sees good examples, doesn't learn what to avoid
+3. **High Computational Cost:** Generating multiple candidates per prompt is expensive
+4. **Model Collapse:** Always picking highest-scoring responses can lead to:
+   - Over-optimization on narrow criteria
+   - Loss of diversity
+   - Reward hacking
+   - Exploitation of scorer weaknesses
+
+**RL Solution:** Use all generated samples with appropriate weighting, continuous learning, and regularization.",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,These limitations of rejection sampling motivated the development of more sophisticated RL approaches that can learn from both positive and negative examples while maintaining stability.
+What is the GRAPE (Generalized Relative Advantage Policy Evolution) reward aggregation formula?,"\[R(\vec{text}_i) = \frac{\sum_{j=1}^{\rho_i} \omega_{ij} \tau_{ij} \bar{\phi}_{ij}}{\sum_{j=1}^{\rho_i} \bar{\phi}_{ij}}\]
+
+Where:
+- \(\rho_i\) is the number of rubric items for sample \(i\)
+- \(\omega_{ij}\) is the weight for rubric item \(j\)
+- \(\tau_{ij}\) is the score for rubric item \(j\)
+- \(\bar{\phi}_{ij}\) is the average confidence across all samples for rubric item \(j\)
+
+**Key insight:** Uses confidence scores to weight the aggregation, giving more weight to rubric items the model is more confident about.",Paper,Understanding Reinforcement Learning for Model Training - Rohit Patel,Algorithms,"GRAPE's innovation is using detailed rubrics with confidence-weighted scoring, making the evaluation process more transparent and modular than traditional reward models."
